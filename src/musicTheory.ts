@@ -1,3 +1,5 @@
+import {Beat, Melody, NotesWithinChord} from "./types";
+
 export default class MusicTheory {
     static alphabet: string[] = Array.from('ABCDEFG').map(d => [`${d}b`, d, `${d}#`]).flat();
     static pitchClassAlphabet: string[] = ['G#-Ab', 'A', 'A#-Bb', 'B-Cb', 'B#-C', 'C#-Db', 'D', 'D#-Eb', 'E-Fb', 'E#-F', 'F#-Gb', 'G'];
@@ -5,21 +7,18 @@ export default class MusicTheory {
     static getChordBase: any = (chord: string): string => MusicTheory.alphabet.sort().reverse().find(value => new RegExp('.*' + value + '.*').test(chord));
     static diffTo: any = (pitch: number, absolute: number): number => absolute <= pitch ? pitch - absolute : (12 - absolute) + pitch;
 
-
-
-
     /**
      * Assembles all chord-melody tone combinations from melody and beats table
      * @param melody Data from melody-Table {pitch, bar, beat}
      * @param beats Data from beats-Table {chord, beat, bass_pitch}
      * @returns Records with the chords and the corresponding melody events
      */
-    static getNotesWithinChord(melody, beats) {
+    static getNotesWithinChord(melody: Melody[], beats: Beat[]): NotesWithinChord[] {
         const chords = beats.filter(beat => beat['chord'] !== '');
-        return chords.map((chord, chordIndex) => {
+        return chords.map((chord: Beat, chordIndex: number) => {
             const melodyEvents = melody.map(melodyEvent => {
                     if (!melodyEvent) {
-                        return false;
+                        return undefined;
                     }
                     const melodyEventValue = melodyEvent['bar'] + (melodyEvent['beat'] * 0.1);
                     const chordValue = chord['bar'] + (chord['beat'] * 0.1);
@@ -28,7 +27,7 @@ export default class MusicTheory {
                     if (melodyEventValue >= chordValue && melodyEventValue < chordAfterValue) {
                         return melodyEvent;
                     } else {
-                        return false;
+                        return undefined;
                     }
                 }
             ).filter(el => !!el);
@@ -42,7 +41,7 @@ export default class MusicTheory {
      * @param chord
      * @returns {number} pitch class
      */
-    static chordBasePitchClass(chord) {
+    static chordBasePitchClass(chord: string): number {
         const chordBaseMatch = this.getChordBase(chord);
         return this.pitchClassAlphabet.indexOf(
             this.pitchClassAlphabet.find(value => value.split("-").indexOf(chordBaseMatch) !== -1)
@@ -53,13 +52,13 @@ export default class MusicTheory {
     /**
      * Takes chord-melody combination and calculates different representations:
      * Absolute Pitch: Abs; Pitch Class: PC; Relative To Key: RTK; Relative to Chord: RTC
-     * @param CMCombinations chord-melody combination
+     * @param chordMelodyCombinations
      * @param key
      * @returns {*}
      */
-    static computeRepresentations(CMCombinations, key) {
+    static computeRepresentations(chordMelodyCombinations: NotesWithinChord[], key: string): NotesWithinChord[] {
         const keyEnh = this.chordBasePitchClass(key);
-        return CMCombinations.map(row => {
+        return chordMelodyCombinations.map(row => {
             row['chordABS'] = row['chord'];
             row['chordPC'] = this.chordBasePitchClass(row['chord'])
             row['chordRTK'] = this.diffTo(row['chordPC'], keyEnh);
